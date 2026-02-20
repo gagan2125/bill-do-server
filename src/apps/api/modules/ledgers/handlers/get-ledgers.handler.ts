@@ -3,6 +3,8 @@ import { AuthRequest } from "../../../middlewares/auth.middleware";
 import { getLedgersService } from "../../../../../packages/services/ledger.services";
 import { LedgerStatus } from "../../../../../generated/prisma/enums";
 
+type LedgerItem = Awaited<ReturnType<typeof getLedgersService>>[number];
+
 const startOfToday = () => {
     const d = new Date();
     d.setUTCHours(0, 0, 0, 0);
@@ -19,7 +21,7 @@ export const getLedgersHandler = async (req: AuthRequest, res: Response) => {
         const ledgers = await getLedgersService(userId);
         const todayStart = startOfToday();
 
-        const data = ledgers.map((ledger) => {
+        const data = ledgers.map((ledger: LedgerItem) => {
             const dueDate = new Date(ledger.dueDate);
             const amount = Number(ledger.amount);
             const paidAmount = ledger.paidAmount != null ? Number(ledger.paidAmount) : 0;

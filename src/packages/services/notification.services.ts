@@ -31,7 +31,7 @@ export const sendPushToUser = async (
             body: payload.body,
         },
         data: payload.data ?? {},
-        tokens: tokens.map((t) => t.token),
+        tokens: tokens.map((t: { token: string }) => t.token),
     };
 
     let sent = 0;

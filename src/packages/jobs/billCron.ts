@@ -4,6 +4,23 @@ import { isBillDueToday } from "../lib/util";
 import { sendPushToUsers } from "../services/notification.services";
 import { sendBillsDueTodayEmail } from "../services/email.services";
 
+type BillCronRow = {
+    id: string;
+    userId: string;
+    name: string;
+    amount: unknown;
+    dueDate: Date;
+    frequency: string;
+};
+
+type NewLedgerEntry = {
+    billId: string;
+    userId: string;
+    amount: string | number;
+    dueDate: Date;
+    status: "PENDING";
+};
+
 export const startBillCron = () => {
     cron.schedule(
         "00 7 * * *",
@@ -41,7 +58,7 @@ export const startBillCron = () => {
                 });
 
                 // 2️⃣ Filter due bills
-                const dueBills = allBills.filter((bill) =>
+                const dueBills = allBills.filter((bill: BillCronRow) =>
                     isBillDueToday(bill.dueDate, bill.frequency, today)
                 );
 
@@ -56,22 +73,22 @@ export const startBillCron = () => {
                 const existingLedgers = await prisma.ledger.findMany({
                     where: {
                         dueDate: startOfDay,
-                        billId: { in: dueBills.map((b) => b.id) },
+                        billId: { in: dueBills.map((b: BillCronRow) => b.id) },
                     },
                     select: { billId: true },
                 });
 
                 const existingBillIds = new Set(
-                    existingLedgers.map((l) => l.billId)
+                    existingLedgers.map((l: { billId: string }) => l.billId)
                 );
 
                 // 4️⃣ Prepare new ledger entries
-                const newLedgerData = dueBills
-                    .filter((bill) => !existingBillIds.has(bill.id))
-                    .map((bill) => ({
+                const newLedgerData: NewLedgerEntry[] = dueBills
+                    .filter((bill: BillCronRow) => !existingBillIds.has(bill.id))
+                    .map((bill: BillCronRow) => ({
                         billId: bill.id,
                         userId: bill.userId,
-                        amount: bill.amount,
+                        amount: Number(bill.amount),
                         dueDate: startOfDay,
                         status: "PENDING" as const,
                     }));
@@ -90,7 +107,7 @@ export const startBillCron = () => {
                 console.log(`🚀 Created ${newLedgerData.length} ledger entries successfully`);
 
                 // 6️⃣ Notify users about new bills due today
-                const userIds = [...new Set(newLedgerData.map((l) => l.userId))];
+                const userIds: string[] = [...new Set(newLedgerData.map((l: NewLedgerEntry) => l.userId))];
                 const count = newLedgerData.length;
                 const title = count === 1 ? "Bill due today" : "Bills due today";
                 const body =

@@ -1,5 +1,8 @@
 import prisma from "../lib/prisma";
+import type { Bill, Ledger } from "../../generated/prisma/client";
 import { LedgerStatus } from "../../generated/prisma/enums";
+
+type LedgerWithBill = Ledger & { bill: Bill };
 
 const startOfToday = (): Date => {
     const d = new Date();
@@ -57,7 +60,7 @@ export const getDashboardService = async (userId: string): Promise<DashboardResu
 
     // Upcoming: PENDING ledgers due in [today, today+5 days)
     const upcomingDues = ledgers
-        .filter((l) => {
+        .filter((l: LedgerWithBill) => {
             const due = new Date(l.dueDate);
             return (
                 l.status === LedgerStatus.PENDING &&
@@ -65,7 +68,7 @@ export const getDashboardService = async (userId: string): Promise<DashboardResu
                 due < fiveDaysEnd
             );
         })
-        .map((l) => ({
+        .map((l: LedgerWithBill) => ({
             id: l.id,
             billId: l.billId,
             billName: l.bill.name,
@@ -73,16 +76,16 @@ export const getDashboardService = async (userId: string): Promise<DashboardResu
             dueDate: new Date(l.dueDate).toISOString(),
             status: l.status,
         }))
-        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        .sort((a: { dueDate: string }, b: { dueDate: string }) => a.dueDate.localeCompare(b.dueDate));
 
     const totalAmountDueNext5Days = round2(
-        upcomingDues.reduce((sum, u) => sum + u.amount, 0)
+        upcomingDues.reduce((sum: number, u: { amount: number }) => sum + u.amount, 0)
     );
 
     // Organizer totals
     let totalPaid = 0;
     let totalOverdue = 0;
-    for (const l of ledgers) {
+    for (const l of ledgers as LedgerWithBill[]) {
         const amt = Number(l.amount);
         if (l.paidAmount != null) totalPaid += Number(l.paidAmount);
         if (l.status === LedgerStatus.PENDING && new Date(l.dueDate) < todayStart) {
@@ -95,8 +98,8 @@ export const getDashboardService = async (userId: string): Promise<DashboardResu
     };
 
     // Per-bill: amount per period, total paid, total overdue
-    const billsList = bills.map((bill) => {
-        const billLedgers = ledgers.filter((l) => l.billId === bill.id);
+    const billsList = bills.map((bill: Bill) => {
+        const billLedgers = (ledgers as LedgerWithBill[]).filter((l: LedgerWithBill) => l.billId === bill.id);
         let totalPaidAmount = 0;
         let totalOverdueAmount = 0;
         for (const l of billLedgers) {
