@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String      @id @default(uuid())
+  firstName        String
+  lastName         String
+
+  email            String      @unique
+  mobileNumber     String      @unique
+
+  password         String?
+
+  isActive         Boolean     @default(true)
+
+  bills            Bill[]
+  ledgers          Ledger[]
+  pushTokens       PushToken[]
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([email])
+  @@index([mobileNumber])
+}
+
+model PushToken {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String       @unique
+  platform  PushPlatform @default(WEB)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+enum PushPlatform {
+  WEB
+  ANDROID
+  IOS
+}
+
+model Bill {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name             String
+  amount           Decimal  @db.Decimal(12, 2)
+  dueDate          DateTime
+
+  frequency        BillFrequency
+  reminder         String
+
+  isPaused         Boolean  @default(false)
+  isDeleted        Boolean  @default(false)
+
+  ledgers          Ledger[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum BillFrequency {
+  MONTHLY
+  YEARLY
+}
+
+model Ledger{
+  id               String   @id @default(uuid())
+
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  billId           String
+  bill             Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  amount           Decimal  @db.Decimal(12, 2)
+  paidAmount       Decimal? @db.Decimal(12, 2)
+
+  dueDate          DateTime
+  paidDate         DateTime?
+
+  status           LedgerStatus @default(PENDING)     
+
+  isDeleted        Boolean  @default(false)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+  @@index([billId])
+  @@index([dueDate])
+  @@unique([billId, dueDate])
+}
+
+enum LedgerStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+}
