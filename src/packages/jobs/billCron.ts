@@ -6,7 +6,7 @@ import { sendBillsDueTodayEmail } from "../services/email.services";
 
 export const startBillCron = () => {
     cron.schedule(
-        "17 7 * * *",
+        "00 7 * * *",
         async () => {
             console.log("🕒 Running Bill Cron Job...");
 
