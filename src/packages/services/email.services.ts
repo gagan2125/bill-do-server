@@ -1,4 +1,5 @@
 import { sendMail, getMailFrom, isEmailConfigured } from "../lib/email";
+import { renderBillsDueEmail } from "../lib/email-templates";
 import prisma from "../lib/prisma";
 
 export interface BillsDueEmailOptions {
@@ -25,10 +26,7 @@ export const sendBillsDueTodayEmail = async (
     const from = getMailFrom();
     const subject =
         billCount === 1 ? "Bill due today" : `${billCount} bills due today`;
-    const textBody =
-        billCount === 1
-            ? "You have 1 new bill due today. Open the app to view and pay."
-            : `You have ${billCount} new bills due today. Open the app to view and pay.`;
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL;
 
     let sent = 0;
     let failed = 0;
@@ -38,16 +36,21 @@ export const sendBillsDueTodayEmail = async (
             failed++;
             continue;
         }
+        const textBody =
+            billCount === 1
+                ? "You have 1 new bill due today. Open the app to view and pay."
+                : `You have ${billCount} new bills due today. Open the app to view and pay.`;
+        const html = renderBillsDueEmail({
+            firstName: user.firstName,
+            billCount,
+            appUrl,
+        });
         const ok = await sendMail({
             from,
             to: user.email,
             subject,
             text: `Hi ${user.firstName},\n\n${textBody}\n\n— Bill Do`,
-            html: `
-                <p>Hi ${user.firstName},</p>
-                <p>${textBody}</p>
-                <p>— Bill Do</p>
-            `,
+            html,
         });
         if (ok) sent++;
         else failed++;

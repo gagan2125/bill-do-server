@@ -23,7 +23,7 @@ type NewLedgerEntry = {
 
 export const startBillCron = () => {
     cron.schedule(
-        "00 7 * * *",
+        "00 21 * * *",
         async () => {
             console.log("🕒 Running Bill Cron Job...");
 

@@ -3,6 +3,7 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 import { createBillHandler } from "./handlers/create-bill.handler";
 import { getBillsHandler } from "./handlers/get-bills.handler";
 import { getBillByIdHandler } from "./handlers/get-bill-by-id.handler";
+import { getBillLedgersHandler } from "./handlers/get-bill-ledgers.handler";
 import { updateBillHandler } from "./handlers/update-bill.handler";
 import { deleteBillHandler } from "./handlers/delete-bill.handler";
 import { pauseBillHandler } from "./handlers/pause-bill.handler";
@@ -14,6 +15,7 @@ router.use(authMiddleware);
 
 router.post("/", createBillHandler);
 router.get("/", getBillsHandler);
+router.get("/:id/ledgers", getBillLedgersHandler);
 router.get("/:id", getBillByIdHandler);
 router.put("/:id/pause", pauseBillHandler);
 router.put("/:id/resume", resumeBillHandler);
